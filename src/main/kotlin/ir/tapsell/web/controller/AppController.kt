@@ -29,7 +29,19 @@ class AppController(val repository: AppStatisticsRepository, val conversionServi
         val sortByReportTime = Sort(Sort.Direction.ASC, "reportTime")
         val apps = repository.find(type, startDate, endDate, sortByReportTime)
         val map = apps.map { app -> conversionService.convert(app, AppStatisticsModel::class.java) }
+                      .groupBy { app ->"${app.year}-${app.weekNum}" }
+                      .map { app -> aggregate(app.value) }
 
         return AppStatisticsListResponse(map)
+    }
+
+    fun aggregate(group: List<AppStatisticsModel>): AppStatisticsModel {
+        return AppStatisticsModel(
+                group[0].weekNum,
+                group[0].year,
+                group.sumBy { app -> app.requests },
+                group.sumBy { app -> app.clicks },
+                group.sumBy { app -> app.installs }
+        )
     }
 }
